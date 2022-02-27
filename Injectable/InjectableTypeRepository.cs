@@ -1,21 +1,7 @@
-﻿using System.Reflection;
-
-namespace Injectable;
+﻿namespace Injectable;
 
 public class InjectableTypeRepository
 {
-    private class InjectableTypeInternal
-    {
-        public Inject? Attribute { get; set; }
-        public Type Implementation { get; set; } = null!;
-        public Type Service { get; set; } = null!;
-
-        public override string ToString()
-        {
-            return $"{Service.Name}:{Implementation.Name}:{Attribute?.InjectionType.ToString() ?? "Null"}";
-        }
-    }
-
     public static IEnumerable<InjectableType> GetAssemblyInjectables(Assembly assembly)
     {
         IEnumerable<InjectableType> GetAssemblyInjectablesInternal()
@@ -23,76 +9,44 @@ public class InjectableTypeRepository
             var injectableImplementations = assembly.GetTypes()
                 .Where(x => x is { IsAbstract: false, IsClass: true, IsInterface: false });
 
-            var implementationBaseClasses = injectableImplementations.SelectMany(x => typeWithRecursiveBaseTypes(x));
-            var interfaceClasses = implementationBaseClasses.SelectMany(x => recursiveInterfaces(x.Implementation));
-            foreach (var injectable in implementationBaseClasses.Concat(interfaceClasses))
-            {
-                if (injectable.Attribute is null)
-                    continue;
+            IEnumerable<Type> getBaseType(Type t) => t.BaseType is { BaseType.IsInterface: false } ? new[] { t.BaseType } : Enumerable.Empty<Type>();
+            IEnumerable<Type> getInterface(Type t) => t.GetInterfaces();
 
-                yield return new InjectableType
+            foreach (var possibleInjectable in injectableImplementations)
+            {
+                var types = TypeWithRecursiveParents(possibleInjectable, getBaseType);
+                types = types.Concat(types.SelectMany(x => TypeWithRecursiveParents(x, getInterface)));
+
+                foreach (var type in types)
                 {
-                    Attribute = injectable.Attribute,
-                    Implementation = injectable.Implementation,
-                    Service = injectable.Service
-                };
+                    var attribute = type.GetCustomAttribute<Inject>();
+                    if (attribute is { InjectionType: InjectionType.Decorated or Injectable.InjectionType.Implementation or InjectionType.DecoratedAndImplementation })
+                        yield return new InjectableType { Attribute = attribute, Implementation = possibleInjectable, Service = type };
+
+                    if (attribute is { InjectionType: InjectionType.DecoratedAndImplementation })
+                        yield return new InjectableType { Attribute = attribute, Implementation = possibleInjectable, Service = possibleInjectable };
+
+                    if (attribute is { InjectionType: InjectionType.FirstGeneric } && type is { IsGenericType: true })
+                    {
+                        var firstGenericType = type.GenericTypeArguments.FirstOrDefault();
+                        if (firstGenericType is not null)
+                            yield return new InjectableType { Attribute = attribute, Implementation = possibleInjectable, Service = firstGenericType };
+                    }
+
+                }
             }
         }
 
         // Return in reverse so the "lowest" class ancestor wins
-        // Brute force to remove duplicates, can we do this better?
         return GetAssemblyInjectablesInternal().Reverse().DistinctBy(x => new { x.Implementation, x.Service });
     }
 
-    static IEnumerable<InjectableTypeInternal> typeWithRecursiveBaseTypes(Type implementation)
+    private static IEnumerable<Type> TypeWithRecursiveParents(Type current, Func<Type, IEnumerable<Type>> getParents)
     {
-        IEnumerable<InjectableTypeInternal> getBaseTypesRecursive(Type type)
+        yield return current;
+        foreach (var parent in getParents(current).SelectMany(x => TypeWithRecursiveParents(x, getParents)))
         {
-            if (type.BaseType is not null)
-            {
-                var attribute = type.BaseType.GetCustomAttribute<Inject>();
-                yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = type.BaseType };
-                if (attribute?.InjectionType == InjectionType.DecoratedAndImplementation)
-                    yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = implementation };
-                foreach (var baseType in getBaseTypesRecursive(type.BaseType))
-                {
-                    yield return baseType;
-                }
-            }
-        }
-
-        yield return new InjectableTypeInternal { Attribute = implementation.GetCustomAttribute<Inject>(), Implementation = implementation, Service = implementation };
-
-        foreach (var baseType in getBaseTypesRecursive(implementation))
-        {
-            yield return baseType;
-        }
-    }
-
-    static IEnumerable<InjectableTypeInternal> recursiveInterfaces(Type implementation)
-    {
-        IEnumerable<InjectableTypeInternal> getInterfacesRecursive(Type type)
-        {
-            foreach (var interfaceType in type.GetInterfaces())
-            {
-                var attribute = interfaceType.GetCustomAttribute<Inject>();
-                yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = interfaceType };
-                if (attribute?.InjectionType == InjectionType.DecoratedAndImplementation)
-                    yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = implementation };
-
-                foreach (var parentInterface in getInterfacesRecursive(interfaceType))
-                {
-                    yield return parentInterface;
-                }
-            }
-        }
-
-        if (implementation.IsInterface)
-            yield return new InjectableTypeInternal { Attribute = implementation.GetCustomAttribute<Inject>(), Implementation = implementation, Service = implementation };
-
-        foreach (var parentInterface in getInterfacesRecursive(implementation))
-        {
-            yield return parentInterface;
+            yield return parent;
         }
     }
 }

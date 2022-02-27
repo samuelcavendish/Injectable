@@ -1,7 +1,5 @@
-﻿namespace Injectable.Tests
-{
+﻿namespace Injectable.Tests;
 
-    [Inject(InjectionType.Implementation)]
-    internal class Implementation { }
-    internal class ImplementationImplementation : Implementation { }
-}
+[Inject(InjectionType.Implementation)]
+internal class Implementation { }
+internal class ImplementationImplementation : Implementation { }
