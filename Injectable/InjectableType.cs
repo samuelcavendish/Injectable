@@ -2,9 +2,9 @@
 
 public class InjectableType
 {
-    public Inject Attribute { get; set; } = null!;
-    public Type Implementation { get; set; } = null!;
-    public Type Service { get; set; } = null!;
+    public Inject Attribute { get; init; } = null!;
+    public Type Implementation { get; init; } = null!;
+    public Type Service { get; init; } = null!;
 
     public override string ToString()
     {

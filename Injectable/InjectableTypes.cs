@@ -1,12 +1,12 @@
 ﻿namespace Injectable;
 
-public class InjectableTypeRepository
+public static class InjectableTypes
 {
     public static IEnumerable<InjectableType> GetAssemblyInjectables(Assembly assembly)
     {
         IEnumerable<InjectableType> GetAssemblyInjectablesInternal()
         {
-            var injectableImplementations = assembly.GetTypes()
+            var injectableImplementations = assembly.DefinedTypes
                 .Where(x => x is { IsAbstract: false, IsClass: true, IsInterface: false });
 
             IEnumerable<Type> getBaseType(Type t) => t.BaseType is { BaseType.IsInterface: false } ? new[] { t.BaseType } : Enumerable.Empty<Type>();
