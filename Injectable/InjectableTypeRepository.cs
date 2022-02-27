@@ -21,9 +21,7 @@ public class InjectableTypeRepository
         IEnumerable<InjectableType> GetAssemblyInjectablesInternal()
         {
             var injectableImplementations = assembly.GetTypes()
-                .Where(x => x is { IsAbstract: false, IsClass: true, IsInterface: false }
-                       && (x.GetCustomAttribute<Inject>() is null or { IncludeDecoratedType: true })
-                );
+                .Where(x => x is { IsAbstract: false, IsClass: true, IsInterface: false });
 
             var implementationBaseClasses = injectableImplementations.SelectMany(x => typeWithRecursiveBaseTypes(x));
             var interfaceClasses = implementationBaseClasses.SelectMany(x => recursiveInterfaces(x.Implementation));
@@ -46,15 +44,16 @@ public class InjectableTypeRepository
         return GetAssemblyInjectablesInternal().Reverse().DistinctBy(x => new { x.Implementation, x.Service });
     }
 
-
-
     static IEnumerable<InjectableTypeInternal> typeWithRecursiveBaseTypes(Type implementation)
     {
         IEnumerable<InjectableTypeInternal> getBaseTypesRecursive(Type type)
         {
             if (type.BaseType is not null)
             {
-                yield return new InjectableTypeInternal { Attribute = type.BaseType.GetCustomAttribute<Inject>(), Implementation = implementation, Service = type.BaseType };
+                var attribute = type.BaseType.GetCustomAttribute<Inject>();
+                yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = type.BaseType };
+                if (attribute?.InjectionType == InjectionType.DecoratedAndImplementation)
+                    yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = implementation };
                 foreach (var baseType in getBaseTypesRecursive(type.BaseType))
                 {
                     yield return baseType;
@@ -70,14 +69,17 @@ public class InjectableTypeRepository
         }
     }
 
-
     static IEnumerable<InjectableTypeInternal> recursiveInterfaces(Type implementation)
     {
         IEnumerable<InjectableTypeInternal> getInterfacesRecursive(Type type)
         {
             foreach (var interfaceType in type.GetInterfaces())
             {
-                yield return new InjectableTypeInternal { Attribute = interfaceType.GetCustomAttribute<Inject>(), Implementation = implementation, Service = interfaceType };
+                var attribute = interfaceType.GetCustomAttribute<Inject>();
+                yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = interfaceType };
+                if (attribute?.InjectionType == InjectionType.DecoratedAndImplementation)
+                    yield return new InjectableTypeInternal { Attribute = attribute, Implementation = implementation, Service = implementation };
+
                 foreach (var parentInterface in getInterfacesRecursive(interfaceType))
                 {
                     yield return parentInterface;

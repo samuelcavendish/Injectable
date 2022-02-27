@@ -28,15 +28,6 @@ public class Tests
     }
 
     [Fact]
-    public void ShouldHaveImplementationIncludingDecorated()
-    {
-        var types = InjectableTypeRepository.GetAssemblyInjectables(_assembly);
-        var _ = types.OfServiceType<Implementation>()
-            .Single(x => x.Implementation.IsOfType<Implementation>());
-        types.OfServiceType<ImplementationImplementation>().ShouldHaveSingleItem();
-    }
-
-    [Fact]
     public void ShouldHaveImplementationAndDecorated()
     {
         var types = InjectableTypeRepository.GetAssemblyInjectables(_assembly);
