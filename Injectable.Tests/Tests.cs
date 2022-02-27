@@ -22,15 +22,26 @@ public class Tests
     public void ShouldHaveImplementation()
     {
         var types = InjectableTypeRepository.GetAssemblyInjectables(_assembly);
-        types.OfServiceType<Implementation>().ShouldHaveSingleItem();
+        _ = types.OfServiceType<Implementation>().Single(x => x.Implementation.IsOfType<Implementation>());
+        _ = types.OfServiceType<Implementation>().Single(x => x.Implementation.IsOfType<ImplementationImplementation>());
         types.OfServiceType<ImplementationImplementation>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ShouldHaveImplementationIncludingDecorated()
+    {
+        var types = InjectableTypeRepository.GetAssemblyInjectables(_assembly);
+        var _ = types.OfServiceType<Implementation>()
+            .Single(x => x.Implementation.IsOfType<Implementation>());
+        types.OfServiceType<ImplementationImplementation>().ShouldHaveSingleItem();
     }
 
     [Fact]
     public void ShouldHaveImplementationAndDecorated()
     {
         var types = InjectableTypeRepository.GetAssemblyInjectables(_assembly);
-        types.OfServiceType<DecoratedAndImplementation>().ShouldHaveSingleItem();
+        _ = types.OfServiceType<DecoratedAndImplementation>().Single(x => x.Implementation.IsOfType<DecoratedAndImplementation>());
+        _ = types.OfServiceType<DecoratedAndImplementation>().Single(x => x.Implementation.IsOfType<DecoratedAndImplementationImplementation>());
         types.OfServiceType<DecoratedAndImplementationImplementation>().ShouldHaveSingleItem();
     }
 
