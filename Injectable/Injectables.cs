@@ -1,10 +1,10 @@
 ﻿namespace Injectable;
 
-public static class InjectableTypes
+public static class Injectables
 {
-    public static IEnumerable<InjectableType> GetAssemblyInjectables(Assembly assembly)
+    public static IEnumerable<InjectableType> GetInjectables(Assembly assembly)
     {
-        IEnumerable<InjectableType> GetAssemblyInjectablesInternal()
+        IEnumerable<InjectableType> GetInjectablesInternal()
         {
             var injectableImplementations = assembly.DefinedTypes
                 .Where(x => x is { IsAbstract: false, IsClass: true, IsInterface: false });
@@ -38,7 +38,7 @@ public static class InjectableTypes
         }
 
         // Return in reverse so the "lowest" class ancestor wins
-        return GetAssemblyInjectablesInternal().Reverse().DistinctBy(x => new { x.Implementation, x.Service });
+        return GetInjectablesInternal().Reverse().DistinctBy(x => new { x.Implementation, x.Service });
     }
 
     private static IEnumerable<Type> TypeWithRecursiveParents(Type current, Func<Type, IEnumerable<Type>> getParents)
