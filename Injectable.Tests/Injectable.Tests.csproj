@@ -31,7 +31,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Injectable.Attributes\Injectable.Abstractions.csproj" />
+		<ProjectReference Include="..\Injectable.Abstractions\Injectable.Abstractions.csproj" />
 		<ProjectReference Include="..\Injectable\Injectable.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
