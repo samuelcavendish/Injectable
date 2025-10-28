@@ -37,17 +37,23 @@ jobs:
 
         Write-Host "Last Tag: $LastTag"
 
-        if ($LastTag -ne $null) {
-          $LastTag = $LastTag.TrimStart("v")
-          $Major = ('${{ github.ref }}' -eq 'refs/heads/main') ? ${{ env.major }} : $LastTag.Split(".")[0]
-          $Minor = ('${{ github.ref }}' -eq 'refs/heads/main') ? ${{ env.minor }} : $LastTag.Split(".")[1]
-          $Patch = ('${{ github.ref }}' -eq 'refs/heads/main' -and `
-            ${{ env.major }} -eq $LastTag.Split(".")[0] -and `
-            ${{ env.minor }} -eq $LastTag.Split(".")[1]) `
-            ? [string]([int]$LastTag.Split(".")[2] + 1) : 0
-          $BuildNo = "$Major.$Minor.$Patch"
-        } else {
-          $BuildNo = "0.0.0"
+        if ($env:LastTag) {
+            $LastTag = $env:LastTag.TrimStart("v")
+            $LastMajor, $LastMinor, $LastPatch = $LastTag.Split(".")
+
+            $Major = $env:major
+            $Minor = $env:minor
+
+            if ($Major -eq $LastMajor -and $Minor -eq $LastMinor) {
+                $Patch = [int]$LastPatch + 1
+            } else {
+                $Patch = 0
+            }
+
+            $BuildNo = "$Major.$Minor.$Patch"
+        } else {        
+            Write-Host "Last Tag Missing"
+            $BuildNo = "0.0.0"
         }
 
         if ($Branch -ne 'refs/heads/main') {
@@ -89,7 +95,7 @@ jobs:
   deployment:
     runs-on: ubuntu-latest
     environment: Nuget
-    if: ${{ github.ref == 'refs/heads/main' }}
+    #if: ${{ github.ref == 'refs/heads/main' }}
     needs: build
     steps:
     - name: Download Build Artifacts
