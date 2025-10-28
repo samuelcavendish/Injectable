@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  major: 0
+  major: 1
   minor: 0
   
   
@@ -19,7 +19,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Set Build Number 
       shell: pwsh
       run: |
@@ -65,6 +65,8 @@ jobs:
       run: dotnet test --no-build --verbosity normal
     - name: Pack
       run: dotnet pack Injectable/Injectable.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
+    - name: Pack
+      run: dotnet pack Injectable/Injectable.Abstractions.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
     - uses: actions/upload-artifact@v3
       with:
         name: packages
