@@ -6,6 +6,16 @@
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 	</PropertyGroup>
+
+	<PropertyGroup>
+		<DevelopmentDependency>true</DevelopmentDependency>
+		<PrivateAssets>all</PrivateAssets>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="$(OutputPath)\Injectable.dll" Pack="true" PackagePath="analyzers/dotnet/cs" />
+	</ItemGroup>
+	
 	<ItemGroup>
 		<None Remove="Resources\Injectables.txt" />
 	</ItemGroup>
