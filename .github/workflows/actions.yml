@@ -67,9 +67,9 @@ jobs:
       run: dotnet pack Injectable/Injectable.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
     - name: Pack
       run: dotnet pack Injectable/Injectable.Abstractions.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: packages
+        name: packages-${{ matrix.runs-on }}
         path: ~/packages/**/*.nupkg
     - name: Tag commit
       shell: pwsh
@@ -86,9 +86,10 @@ jobs:
     needs: build
     steps:
     - name: Download a Build Artifact
-      uses: actions/download-artifact@v3.0.0
+      uses: actions/download-artifact@v4
       with:
-        name: packages  
+        name: packages-*  
+        merge-multiple: true
     - name: Publish
       if: equals(${{github.ref}}, 'refs/heads/main')
       run: nuget push **\Injectable*.nupkg -Source 'https://api.nuget.org/v3/index.json' -ApiKey ${{secrets.NUGET_PAT}}
