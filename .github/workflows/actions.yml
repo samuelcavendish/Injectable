@@ -51,11 +51,11 @@ jobs:
         }
 
         if ($Branch -ne 'refs/heads/main') {
-          $BuildNo = $BuildNo
+          $BuildNo = $BuildNo + "-$BranchName-$Date"
         }
 
-        Write-Host "BuildNo: $BuildNo"
-        echo "BuildNo=v$BuildNo" | Out-File -FilePath ${{ github.env }} -Encoding utf-8 -Append
+        Write-Host "BuildNo: v$BuildNo"
+        echo "BuildNo=$BuildNo" | Out-File -FilePath ${{ github.env }} -Encoding utf-8 -Append
 
     - name: Restore dependencies
       run: dotnet restore
