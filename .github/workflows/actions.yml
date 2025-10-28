@@ -66,7 +66,7 @@ jobs:
     - name: Pack
       run: dotnet pack Injectable/Injectable.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
     - name: Pack
-      run: dotnet pack Injectable/Injectable.Abstractions.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
+      run: dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
     - uses: actions/upload-artifact@v4
       with:
         name: packages-${{ matrix.runs-on }}
