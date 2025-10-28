@@ -1,4 +1,6 @@
-﻿namespace Injectable.Extensions;
+﻿using System;
+
+namespace Injectable;
 
 public static class TypeExtensions
 {
