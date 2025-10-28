@@ -51,7 +51,7 @@ jobs:
         }
 
         if ($Branch -ne 'refs/heads/main') {
-          $BuildNo = $BuildNo + "-test"
+          $BuildNo = $BuildNo
         }
 
         Write-Host "BuildNo: $BuildNo"
