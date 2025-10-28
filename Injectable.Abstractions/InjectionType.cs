@@ -1,4 +1,4 @@
-﻿namespace Injectable;
+﻿namespace Injectable.Abstractions;
 
 public enum InjectionType
 {
