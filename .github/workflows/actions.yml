@@ -9,87 +9,93 @@ on:
 env:
   major: 1
   minor: 0
-  
-  
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+
     - name: Set Build Number 
       shell: pwsh
       run: |
-        $Branch= "${{github.ref}}"
-        $BranchName= "${{github.ref_name}}".ToLower()
+        $Branch = "${{ github.ref }}"
+        $BranchName = "${{ github.ref_name }}".ToLower()
 
-        if ('${{github.event_name }}' -eq 'pull_request')
-        {
-          $BranchName = "PR${{github.event.number}}"
+        if ('${{ github.event_name }}' -eq 'pull_request') {
+          $BranchName = "PR${{ github.event.number }}"
         }
-        
+
         git fetch --tags
-        $LastTag = git tag --sort=-version:refname -l [v][0-9].[0-9].[0-9] | Select-Object -First 1
+        $LastTag = git tag --sort=-version:refname -l "v[0-9].[0-9].[0-9]" | Select-Object -First 1
         $Date = (Get-Date).ToUniversalTime().ToString("yyyyMMdd-HHmmss")
 
         Write-Host "Last Tag: $LastTag"
 
-        if ($LastTag -ne $null)
-        {
+        if ($LastTag -ne $null) {
           $LastTag = $LastTag.TrimStart("v")
-          $Major = '${{github.ref}}' -eq 'refs/heads/main' ? ${{ env.major }} : $LastTag.Split(".")[0]
-          $Minor = '${{github.ref}}' -eq 'refs/heads/main' ? ${{ env.minor }} : $LastTag.Split(".")[1] 
-          $Patch = ('${{github.ref}}' -eq 'refs/heads/main' -and ${{ env.major }} -eq $LastTag.Split(".")[0] -and ${{ env.minor }} -eq $LastTag.Split(".")[1]) ? [string]([int]$LastTag.Split(".")[2] + 1) : 0
+          $Major = ('${{ github.ref }}' -eq 'refs/heads/main') ? ${{ env.major }} : $LastTag.Split(".")[0]
+          $Minor = ('${{ github.ref }}' -eq 'refs/heads/main') ? ${{ env.minor }} : $LastTag.Split(".")[1]
+          $Patch = ('${{ github.ref }}' -eq 'refs/heads/main' -and `
+            ${{ env.major }} -eq $LastTag.Split(".")[0] -and `
+            ${{ env.minor }} -eq $LastTag.Split(".")[1]) `
+            ? [string]([int]$LastTag.Split(".")[2] + 1) : 0
           $BuildNo = "$Major.$Minor.$Patch"
-        }
-        else 
-        {
+        } else {
           $BuildNo = "0.0.0"
         }
 
-        if ($Branch -ne 'refs/heads/main')
-        {
+        if ($Branch -ne 'refs/heads/main') {
           $BuildNo = $BuildNo + "-$BranchName-$Date"
         }
 
-        Write-Host "BuildNo: $BuildNo"
-        echo "BuildNo=$BuildNo" | Out-File -FilePath ${{github.env}} -Encoding utf-8 -Append
+        Write-Host "BuildNo: v$BuildNo"
+        echo "BuildNo=$BuildNo" | Out-File -FilePath ${{ github.env }} -Encoding utf-8 -Append
+
     - name: Restore dependencies
       run: dotnet restore
+
     - name: Build
       run: dotnet build --no-restore
+
     - name: Test
       run: dotnet test --no-build --verbosity normal
-    - name: Pack
-      run: dotnet pack Injectable/Injectable.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
-    - name: Pack
-      run: dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj /p:Configuration=Release --output ~/packages /p:PackageVersion=$BuildNo --verbosity Detailed
+
+    - name: Pack Injectable
+      run: dotnet pack Injectable/Injectable.csproj --configuration Release --output ./packages /p:PackageVersion=$BuildNo --verbosity minimal
+
+    - name: Pack Injectable.Abstractions
+      run: dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./packages /p:PackageVersion=$BuildNo --verbosity minimal
+
     - uses: actions/upload-artifact@v4
       with:
-        name: packages-${{ matrix.runs-on }}
-        path: ~/packages/**/*.nupkg
+        name: packages
+        path: ./packages/**/*.nupkg
+
     - name: Tag commit
       shell: pwsh
-      if: ${{ github.ref == 'refs/heads/main'}}
+      if: ${{ github.ref == 'refs/heads/main' }}
       run: |
         git config user.name "GitHub Actions Bot"
         git config user.email "<>"
         git tag -a "v$env:BuildNo" -m "Increment Build No"
         git push origin "v$env:BuildNo"
-  deployment: 
+
+  deployment:
     runs-on: ubuntu-latest
     environment: Nuget
-    if: ${{ github.ref == 'refs/heads/main'}}
+    if: ${{ github.ref == 'refs/heads/main' }}
     needs: build
     steps:
-    - name: Download a Build Artifact
+    - name: Download Build Artifacts
       uses: actions/download-artifact@v4
       with:
-        name: packages-*  
-        merge-multiple: true
-    - name: Publish
-      if: equals(${{github.ref}}, 'refs/heads/main')
-      run: nuget push **\Injectable*.nupkg -Source 'https://api.nuget.org/v3/index.json' -ApiKey ${{secrets.NUGET_PAT}}
+        name: packages
+
+    - name: Publish to NuGet
+      run: dotnet nuget push **/Injectable*.nupkg --source "https://api.nuget.org/v3/index.json" --api-key ${{ secrets.NUGET_PAT }}
