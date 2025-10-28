@@ -7,10 +7,10 @@
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 	</PropertyGroup>
 	<ItemGroup>
-	  <None Remove="Resources\Injectables.txt" />
+		<None Remove="Resources\Injectables.txt" />
 	</ItemGroup>
 	<ItemGroup>
-	  <EmbeddedResource Include="Resources\Injectables.txt" />
+		<EmbeddedResource Include="Resources\Injectables.txt" />
 	</ItemGroup>
 
 	<ItemGroup>
