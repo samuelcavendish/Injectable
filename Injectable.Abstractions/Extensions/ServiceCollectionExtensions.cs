@@ -7,12 +7,12 @@ namespace Injectable;
 
 public static class ServiceCollectionExtensions
 {
-    // Add all injectables respecting their lifecycle from the attribute
+    // Add all injectables respecting their lifetime from the attribute
     public static IServiceCollection AddByLifecycle(this IServiceCollection services, IEnumerable<InjectableType> injectableTypes)
     {
         foreach (var type in injectableTypes)
         {
-            switch (type.Lifecycle)
+            switch (type.Lifetime)
             {
                 case ServiceLifetime.Singleton:
                     services.AddSingleton(type.Service, type.Implementation);
@@ -32,7 +32,7 @@ public static class ServiceCollectionExtensions
     {
         foreach (var type in injectableTypes)
         {
-            switch (type.Lifecycle)
+            switch (type.Lifetime)
             {
                 case ServiceLifetime.Transient:
                     services.AddTransient(type.Service, type.Implementation);
@@ -51,21 +51,21 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddInjectableSingletons(this IServiceCollection services, IEnumerable<InjectableType> injectableTypes)
     {
-        foreach (var type in injectableTypes.Where(x => x.Lifecycle == ServiceLifetime.Singleton))
+        foreach (var type in injectableTypes.Where(x => x.Lifetime == ServiceLifetime.Singleton))
             services.AddSingleton(type.Service, type.Implementation);
         return services;
     }
 
     public static IServiceCollection AddInjectableTransients(this IServiceCollection services, IEnumerable<InjectableType> injectableTypes)
     {
-        foreach (var type in injectableTypes.Where(x => x.Lifecycle == ServiceLifetime.Transient))
+        foreach (var type in injectableTypes.Where(x => x.Lifetime == ServiceLifetime.Transient))
             services.AddTransient(type.Service, type.Implementation);
         return services;
     }
 
-    public static IServiceCollection AddInjectableScoped(this IServiceCollection services, IEnumerable<InjectableType> injectableTypes)
+    public static IServiceCollection AddInjectableScopes(this IServiceCollection services, IEnumerable<InjectableType> injectableTypes)
     {
-        foreach (var type in injectableTypes.Where(x => x.Lifecycle == ServiceLifetime.Scoped))
+        foreach (var type in injectableTypes.Where(x => x.Lifetime == ServiceLifetime.Scoped))
             services.AddScoped(type.Service, type.Implementation);
         return services;
     }

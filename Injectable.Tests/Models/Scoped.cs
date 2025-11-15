@@ -3,8 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Injectable.Tests.Models
 {
-    [Inject(lifecycle: ServiceLifetime.Scoped)]
-    internal class Scoped
-    {
-    }
+    [Inject(lifetime: ServiceLifetime.Scoped)]
+    internal class Scoped { }
+    internal class MyScoped : Scoped { }
 }

@@ -6,12 +6,15 @@ namespace Injectable.Abstractions;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, Inherited = false)]
 public class InjectAttribute : Attribute
 {
-    public InjectAttribute(InjectionType injectionType = InjectionType.Decorated, ServiceLifetime lifecycle = ServiceLifetime.Singleton)
+    public InjectAttribute(InjectionType injectionType = InjectionType.Decorated, ServiceLifetime lifetime = ServiceLifetime.Singleton, string? @namespace = null)
+
     {
         InjectionType = injectionType;
-        Lifecycle = lifecycle;
+        Lifetime = lifetime;
+        Namespace = @namespace;
     }
 
     public InjectionType InjectionType { get; }
-    public ServiceLifetime Lifecycle { get; }
+    public ServiceLifetime Lifetime { get; }
+    public string? Namespace { get; set; }
 }
