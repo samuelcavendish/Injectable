@@ -80,13 +80,13 @@ jobs:
 
     - name: Pack Injectable
       run: |    
-        echo "Package version: $BuildNo"
-        dotnet pack Injectable/Injectable.csproj --configuration Release --output ./packages -p:PackageVersion=$BuildNo --verbosity minimal
+        echo "Package version: $env:BuildNo"
+        dotnet pack Injectable/Injectable.csproj --configuration Release --output ./packages -p:PackageVersion=$env:BuildNo --verbosity minimal
 
     - name: Pack Injectable.Abstractions
       run:  |    
-        echo "Package version: $BuildNo"
-        dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./packages -p:PackageVersion=$BuildNo --verbosity minimal
+        echo "Package version: $env:BuildNo"
+        dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./packages -p:PackageVersion=$env:BuildNo --verbosity minimal
 
     - uses: actions/upload-artifact@v4
       with:
