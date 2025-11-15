@@ -16,8 +16,8 @@ public class RegistrationTests
     public void ShouldHaveImplementation()
     {
         var types = Injectables.GetInjectables();
-        _ = types.OfServiceType<Implementation>().Single(x => x.Implementation.IsOfType<Implementation>());
-        _ = types.OfServiceType<Implementation>().Single(x => x.Implementation.IsOfType<ImplementationImplementation>());
+        types.OfServiceType<Implementation>().Where(x => x.Implementation.IsOfType<Implementation>()).ShouldBeEmpty();
+        types.OfServiceType<Implementation>().Single(x => x.Implementation.IsOfType<ImplementationImplementation>());
         types.OfServiceType<ImplementationImplementation>().ShouldBeEmpty();
     }
 
@@ -25,9 +25,8 @@ public class RegistrationTests
     public void ShouldHaveImplementationAndDecorated()
     {
         var types = Injectables.GetInjectables();
-        _ = types.OfServiceType<DecoratedAndImplementation>().Single(x => x.Implementation.IsOfType<DecoratedAndImplementation>());
-        _ = types.OfServiceType<DecoratedAndImplementation>().Single(x => x.Implementation.IsOfType<DecoratedAndImplementationImplementation>());
-        types.OfServiceType<DecoratedAndImplementationImplementation>().ShouldHaveSingleItem();
+        types.OfServiceType<DecoratedAndImplementation>().Where(x => x.Implementation.IsOfType<DecoratedAndImplementationImplementation>()).ShouldHaveSingleItem();
+        types.OfServiceType<DecoratedAndImplementationImplementation>().Where(x => x.Implementation.IsOfType<DecoratedAndImplementationImplementation>()).ShouldHaveSingleItem();
     }
 
     [Fact]

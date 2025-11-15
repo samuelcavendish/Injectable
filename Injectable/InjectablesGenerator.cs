@@ -1,54 +1,68 @@
 ﻿using Injectable.Abstractions;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Injectable;
 
 [Generator]
-public class InjectablesGenerator : ISourceGenerator
+public class InjectablesGenerator : IIncrementalGenerator
 {
-    public void Initialize(GeneratorInitializationContext context)
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        context.RegisterForSyntaxNotifications(() => new InjectableSyntaxReceiver());
+        // Collect all AddNamespace calls from the syntax tree.
+        // Order guarantee: The syntax provider runs first, collecting all namespace requests,
+        // then Combine() ensures these are available before processing the compilation.
+        // This guarantees that namespaced injectables are filtered correctly based on AddNamespace calls.
+        var namespaceRequests = context.SyntaxProvider
+            .CreateSyntaxProvider(static (node, _) => node is InvocationExpressionSyntax invocation && IsAddNamespaceInvocation(invocation),
+                static (context, _) => GetNamespacesFromInvocation(context))
+            .SelectMany(static (namespaces, _) => namespaces)
+            .Collect();
+
+        // Combine compilation with namespace requests. The Combine() ensures namespaceRequests
+        // is fully collected before the compilation is processed, maintaining order guarantee.
+        var implementationsProvider = context.CompilationProvider
+            .Combine(namespaceRequests)
+            .Select(static (data, cancellationToken) =>
+            {
+                var (compilation, namespaceLiterals) = data;
+                var allowedNamespaces = namespaceLiterals.IsDefaultOrEmpty
+                    ? ImmutableHashSet<string>.Empty
+                    : namespaceLiterals.ToImmutableHashSet(StringComparer.Ordinal);
+
+                return ComputeImplementations(compilation, allowedNamespaces, cancellationToken);
+            });
+
+        context.RegisterSourceOutput(implementationsProvider, (productionContext, implementations) =>
+        {
+            if (implementations.IsDefaultOrEmpty)
+            {
+                return;
+            }
+
+            var source = GenerateSource(implementations);
+            productionContext.AddSource("Injectables.g.cs", SourceText.From(source, Encoding.UTF8));
+        });
     }
 
-    public void Execute(GeneratorExecutionContext context)
+    private static ImmutableArray<(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType, int type, int lifetime)> ComputeImplementations(
+        Compilation compilation,
+        ImmutableHashSet<string> allowedNamespaces,
+        CancellationToken cancellationToken)
     {
-        if (context.SyntaxContextReceiver is not InjectableSyntaxReceiver receiver)
-            return;
-
-        var compilation = context.Compilation;
-
-        // Get all classes marked with [Inject] attribute
-        var injectableTypes = new List<(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType, int type, int lifecycle)>();
-
-        foreach (var candidate in receiver.Candidates.Concat<SyntaxNode>(receiver.InterfaceCandidates))
-        {
-            var semanticModel = compilation.GetSemanticModel(candidate.SyntaxTree);
-            var symbol = semanticModel.GetDeclaredSymbol(candidate);
-
-            if (symbol == null || !(symbol is INamedTypeSymbol namedSymbol))
-                continue;
-
-            // Check if class or interface has [Inject] attribute
-            var injectAttribute = GetInjectAttribute(namedSymbol);
-
-            if (injectAttribute != null)
-            {
-                var injectionType = GetInjectionType(injectAttribute);
-                var lifecycle = GetLifecycle(injectAttribute);
-                injectableTypes.Add((namedSymbol, namedSymbol, injectionType, lifecycle));
-            }
-        }
-
-        // Find implementations
-        var implementations = new List<(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType, int type, int lifecycle)>();
+        var implementations = new List<(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType, int type, int lifetime)>();
 
         foreach (var typeSymbol in GetAllTypes(compilation.GlobalNamespace))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (!(typeSymbol is INamedTypeSymbol namedType))
                 continue;
 
@@ -66,29 +80,61 @@ public class InjectablesGenerator : ISourceGenerator
                 var attribute = GetInjectAttribute(serviceType);
                 if (attribute != null)
                 {
+                    var namespaceFilter = GetNamespace(attribute);
+                    if (!ShouldIncludeNamespace(namespaceFilter, allowedNamespaces))
+                    {
+                        continue;
+                    }
+
                     var injectionType = GetInjectionType(attribute);
-                    var lifecycle = GetLifecycle(attribute);
-                    implementations.Add((serviceType, namedType, injectionType, lifecycle));
+                    var lifetime = GetLifecycle(attribute);
+                    if (injectionType is 1 or 2 or 3)
+                        implementations.Add((serviceType, namedType, injectionType, lifetime));
 
                     if (injectionType == 3) // DecoratedAndImplementation
                     {
-                        implementations.Add((namedType, namedType, injectionType, lifecycle));
+                        implementations.Add((namedType, namedType, injectionType, lifetime));
                     }
                 }
             }
 
             // Handle FirstGeneric
-            if (serviceTypes.Any(st => GetInjectionType(GetInjectAttribute(st)) == 4 && st.IsGenericType))
+            if (serviceTypes.Any(st =>
             {
-                var genericServiceType = serviceTypes.FirstOrDefault(st => GetInjectionType(GetInjectAttribute(st)) == 4 && st.IsGenericType);
-                var genericAttribute = GetInjectAttribute(genericServiceType);
+                var attribute = GetInjectAttribute(st);
+                if (attribute == null || GetInjectionType(attribute) != 4 || !st.IsGenericType)
+                {
+                    return false;
+                }
+
+                return ShouldIncludeNamespace(GetNamespace(attribute), allowedNamespaces);
+            }))
+            {
+                var genericServiceType = serviceTypes.FirstOrDefault(st =>
+                {
+                    var attribute = GetInjectAttribute(st);
+                    if (attribute == null || GetInjectionType(attribute) != 4 || !st.IsGenericType)
+                    {
+                        return false;
+                    }
+
+                    return ShouldIncludeNamespace(GetNamespace(attribute), allowedNamespaces);
+                });
+
+                var genericAttribute = genericServiceType != null ? GetInjectAttribute(genericServiceType) : null;
+
                 if (genericServiceType != null && genericServiceType.IsGenericType && genericServiceType.TypeArguments.Length > 0)
                 {
                     var firstGenericArg = genericServiceType.TypeArguments[0];
                     if (firstGenericArg is INamedTypeSymbol firstArg && genericAttribute != null)
                     {
-                        var lifecycle = GetLifecycle(genericAttribute);
-                        implementations.Add((firstArg, namedType, 4, lifecycle)); // FirstGeneric
+                        if (!ShouldIncludeNamespace(GetNamespace(genericAttribute), allowedNamespaces))
+                        {
+                            continue;
+                        }
+
+                        var lifetime = GetLifecycle(genericAttribute);
+                        implementations.Add((firstArg, namedType, 4, lifetime)); // FirstGeneric
                     }
                 }
             }
@@ -98,23 +144,18 @@ public class InjectablesGenerator : ISourceGenerator
         var distinctImplementations = implementations
             .GroupBy(impl => new { ServiceKey = impl.serviceType.ToDisplayString(), ImplementationKey = impl.implementationType.ToDisplayString() })
             .Select(g => g.Last())
-            .ToList();
+            .ToImmutableArray();
 
-        if (distinctImplementations.Count == 0)
-            return;
+        if (distinctImplementations.IsDefaultOrEmpty)
+            return ImmutableArray<(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType, int type, int lifetime)>.Empty;
 
-        // Generate source code
-        var source = GenerateSource(compilation, distinctImplementations);
-        context.AddSource("Injectables.g.cs", SourceText.From(source, Encoding.UTF8));
+        return distinctImplementations;
     }
 
     private static IEnumerable<INamedTypeSymbol> GetAllAncestorTypes(INamedTypeSymbol type)
     {
-        var types = new List<INamedTypeSymbol>
-        {
-            // Add current type
-            type
-        };
+        // Don't include the decorated type, it's just the marker
+        var types = new List<INamedTypeSymbol>();
 
         // Add base class hierarchy
         var baseType = type.BaseType;
@@ -185,6 +226,43 @@ public class InjectablesGenerator : ISourceGenerator
             .FirstOrDefault(attr => attr.AttributeClass?.Name == nameof(InjectAttribute) || attr.AttributeClass?.Name == "Inject");
     }
 
+    private static bool IsAddNamespaceInvocation(InvocationExpressionSyntax invocation)
+    {
+        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
+        {
+            return false;
+        }
+
+        if (!string.Equals(memberAccess.Name.Identifier.ValueText, "AddNamespace", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return memberAccess.Expression switch
+        {
+            IdentifierNameSyntax identifier when identifier.Identifier.ValueText == "Injectables" => true,
+            MemberAccessExpressionSyntax innerMember => innerMember.ToString().EndsWith(".Injectables", StringComparison.Ordinal),
+            _ => false
+        };
+    }
+
+    private static ImmutableArray<string> GetNamespacesFromInvocation(GeneratorSyntaxContext context)
+    {
+        var invocation = (InvocationExpressionSyntax)context.Node;
+        var namespaces = ImmutableArray.CreateBuilder<string>();
+
+        foreach (var argument in invocation.ArgumentList.Arguments)
+        {
+            var constantValue = context.SemanticModel.GetConstantValue(argument.Expression);
+            if (constantValue.HasValue && constantValue.Value is string value && !string.IsNullOrWhiteSpace(value))
+            {
+                namespaces.Add(value);
+            }
+        }
+
+        return namespaces.ToImmutable();
+    }
+
     private static int GetInjectionType(AttributeData? attribute)
     {
         if (attribute == null)
@@ -222,7 +300,7 @@ public class InjectablesGenerator : ISourceGenerator
         // Check named arguments first
         foreach (var namedArg in attribute.NamedArguments)
         {
-            if (namedArg.Key == "Lifecycle" && namedArg.Value.Kind == TypedConstantKind.Enum)
+            if (namedArg.Key == "lifetime" && namedArg.Value.Kind == TypedConstantKind.Enum)
             {
                 return (int)namedArg.Value.Value!;
             }
@@ -241,9 +319,48 @@ public class InjectablesGenerator : ISourceGenerator
         return 1; // Singleton
     }
 
-    private string GenerateSource(Compilation compilation, List<(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType, int type, int lifecycle)> implementations)
+    private static string? GetNamespace(AttributeData? attribute)
     {
-        var template = EmbeddedResourceReader.ReadAsString(this.GetType().Assembly, "Injectable.Resources.Injectables.txt");
+        if (attribute == null)
+        {
+            return null;
+        }
+
+        // Check named arguments (e.g., Namespace = "Private")
+        foreach (var namedArg in attribute.NamedArguments)
+        {
+            if (namedArg.Key == nameof(InjectAttribute.Namespace) && namedArg.Value.Value is string namedValue)
+            {
+                return namedValue;
+            }
+        }
+
+        // Check constructor arguments (third parameter)
+        if (attribute.ConstructorArguments.Length > 2)
+        {
+            var arg = attribute.ConstructorArguments[2];
+            if (arg.Value is string ctorValue)
+            {
+                return ctorValue;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool ShouldIncludeNamespace(string? namespaceValue, ImmutableHashSet<string> allowedNamespaces)
+    {
+        if (string.IsNullOrWhiteSpace(namespaceValue))
+        {
+            return true;
+        }
+
+        return allowedNamespaces.Contains(namespaceValue!);
+    }
+
+    private static string GenerateSource(ImmutableArray<(INamedTypeSymbol serviceType, INamedTypeSymbol implementationType, int type, int lifetime)> implementations)
+    {
+        var template = EmbeddedResourceReader.ReadAsString(typeof(InjectablesGenerator).Assembly, "Injectable.Resources.Injectables.txt");
         var implementationString = new StringBuilder();
 
         foreach (var impl in implementations)
@@ -251,7 +368,7 @@ public class InjectablesGenerator : ISourceGenerator
             var serviceType = ToFullyQualifiedTypeName(impl.serviceType);
             var implementationType = ToFullyQualifiedTypeName(impl.implementationType);
             var injectionType = impl.type;
-            var lifecycle = impl.lifecycle;
+            var lifetime = impl.lifetime;
             var enumName = injectionType switch
             {
                 1 => "Decorated",
@@ -260,7 +377,7 @@ public class InjectablesGenerator : ISourceGenerator
                 4 => "FirstGeneric",
                 _ => "Decorated"
             };
-            var lifecycleName = lifecycle switch
+            var lifecycleName = lifetime switch
             {
                 0 => "Singleton",
                 1 => "Scoped",
@@ -279,14 +396,20 @@ public class InjectablesGenerator : ISourceGenerator
         return template.Replace("{{ Implementations }}", implementationString.ToString());
     }
 
-    private string ToFullyQualifiedTypeName(INamedTypeSymbol symbol)
+    private static string ToFullyQualifiedTypeName(INamedTypeSymbol symbol)
     {
         if (symbol.IsGenericType)
         {
             var nameWithoutArity = symbol.Name.Split('`')[0];
-            return $"{symbol.ContainingNamespace.ToDisplayString()}.{nameWithoutArity}<{string.Join(", ", symbol.TypeArguments.OfType<INamedTypeSymbol>().Select(ToFullyQualifiedTypeName))}>";
+            return $"{GetNamespacePrefix(symbol)}{nameWithoutArity}<{string.Join(", ", symbol.TypeArguments.OfType<INamedTypeSymbol>().Select(ToFullyQualifiedTypeName))}>";
         }
 
-        return $"{symbol.ContainingNamespace.ToDisplayString()}.{symbol.Name}";
+        return $"{GetNamespacePrefix(symbol)}{symbol.Name}";
+    }
+
+    private static string GetNamespacePrefix(INamedTypeSymbol symbol)
+    {
+        var namespaceName = symbol.ContainingNamespace.ToDisplayString();
+        return string.IsNullOrEmpty(namespaceName) ? string.Empty : namespaceName + ".";
     }
 }

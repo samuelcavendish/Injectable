@@ -8,15 +8,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="Resources\TestResource.txt" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Include="Resources\TestResource.txt" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
 		<PackageReference Include="Shouldly" Version="4.3.0" />
 		<PackageReference Include="xunit" Version="2.9.3" />
@@ -39,7 +30,6 @@
 		<Using Include="Xunit" />
 		<Using Include="Shouldly" />
 		<Using Include="System.Linq" />
-		<Using Include="System.Reflection" />
 	</ItemGroup>
 
 </Project>
