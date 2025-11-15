@@ -78,7 +78,7 @@ jobs:
       run: dotnet test --no-build --verbosity normal
 
     - name: Pack Injectable
-      run: dotnet pack Injectable/Injectable.csproj --configuration Release --output ./packages /p:PackageVersion=$env:BuildNo --verbosity minimal
+      run: dotnet pack Injectable/Injectable.csproj --configuration Release --output ./packages /p:PackageVersion=${{ env.BUILD_NO }} --verbosity minimal
 
     - name: Pack Injectable.Abstractions
       run: dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./packages /p:PackageVersion=${{ env.BUILD_NO }} --verbosity minimal
