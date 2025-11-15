@@ -1,16 +1,35 @@
 # Injectable
-Injectable is a library for finding and registering classes with Microsoft Dependency Injection. It works by adding an `[Inject]` attribute to an interface/class to register it as an Injectable type. Injectable will then reflect the assembly provided to find any classes that inherit from a injectable type. The injectable type doesn't have to live in the same assembly as the implementation to register and Injectable will keep traversing base types/interfaces so even if the `[Inject]` attribute is on an "Ancestor" the type will still be detected to be injected.
+Injectable is a source generator for Microsoft Dependency Injection. Add the `[Inject]` attribute to an interface/class and the incremental generator will emit a list of injectable mappings at compile time. The injectable type doesn't have to live in the same assembly as the implementation and Injectable will keep traversing base types/interfaces so even if the `[Inject]` attribute is on an "Ancestor" the type will still be detected to be injected.
 
 Injectable produces a list of injectable types which can then be used like so:
 
 ```
-foreach (var injectable in Injectables.GetInjectables(myAssembly))
+foreach (var injectable in Injectables.GetInjectables())
 {
     services.AddSingleton(injectable.Service, injectable.Implementation);
 }
 ```
 
-By default Injectable will get all the implementations in the assembly, if you want to just register certain types you could filter the `Injectables.GetInjectables()` to, for example, `Injectables.GetInjectables().OfType<IMyInterface>()`. You can use this functionality to choose how services are registered (e.g. register some services as Singleton & others as Transient).
+By default Injectable will surface every implementation discovered during compilation. If you want to just register certain types you can filter the `Injectables.GetInjectables()` results, for example, `Injectables.GetInjectables().OfServiceType<IMyInterface>()`. You can use this functionality to choose how services are registered (e.g. register some services as Singleton & others as Transient).
+
+### Namespaced injectables
+
+If you want to keep some injectables private to a solution, you can supply an optional namespace when applying the attribute:
+
+```
+[Inject(Namespace = "PrivateServices")]
+public interface IInternalService { }
+
+public class InternalService : IInternalService { }
+```
+
+Injectable will skip generating these entries unless the project contains a call to `Injectables.AddNamespace("PrivateServices");`. Simply invoke the helper once (for example in your composition root) to opt-in:
+
+```
+Injectables.AddNamespace("PrivateServices");
+```
+
+Namespaces are opt-in per project, so a shared library can hide private registrations while still exposing them in other solutions that choose to opt-in.
 
 ## What can I register
 
@@ -135,7 +154,10 @@ In this case the user could filter the results that come back from Injectable be
 
 ```
 var injectables = Injectables.GetInjectables()
-    .Where(x => x.Implementation.GetAttribute<Inject>() is null);
+    .Where(x => x.Implementation.GetCustomAttribute<InjectAttribute>() is null);
+
+// Requires:
+// using System.Reflection;
 ```
 
 As easy as that we've filtered out any implementations that have the Inject attribute on directly
@@ -145,9 +167,9 @@ As easy as that we've filtered out any implementations that have the Inject attr
 To make it faster to add Injectables to your container, Injectable provides you with 3 extension methods on IServiceCollection
 
 ```
-.AddSingletons
-.AddTransients
-.AddScopes
+.AddInjectableSingletons
+.AddInjectableTransients
+.AddInjectableScopes
 ```
 
 These 3 extensions allow you to add all the results from Injectables at once instead of having to loop through the results

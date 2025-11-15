@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  major: 1
+  major: 2
   minor: 0
 
 jobs:
@@ -28,35 +28,47 @@ jobs:
         $BranchName = "${{ github.ref_name }}".ToLower()
 
         if ('${{ github.event_name }}' -eq 'pull_request') {
-          $BranchName = "PR${{ github.event.number }}"
+            $BranchName = "PR${{ github.event.number }}"
         }
 
+        # Fetch the latest tags from the repository
         git fetch --tags
         $LastTag = git tag --sort=-version:refname -l "v[0-9].[0-9].[0-9]" | Select-Object -First 1
         $Date = (Get-Date).ToUniversalTime().ToString("yyyyMMdd-HHmmss")
 
         Write-Host "Last Tag: $LastTag"
 
-        if ($LastTag -ne $null) {
-          $LastTag = $LastTag.TrimStart("v")
-          $Major = ('${{ github.ref }}' -eq 'refs/heads/main') ? ${{ env.major }} : $LastTag.Split(".")[0]
-          $Minor = ('${{ github.ref }}' -eq 'refs/heads/main') ? ${{ env.minor }} : $LastTag.Split(".")[1]
-          $Patch = ('${{ github.ref }}' -eq 'refs/heads/main' -and `
-            ${{ env.major }} -eq $LastTag.Split(".")[0] -and `
-            ${{ env.minor }} -eq $LastTag.Split(".")[1]) `
-            ? [string]([int]$LastTag.Split(".")[2] + 1) : 0
-          $BuildNo = "$Major.$Minor.$Patch"
+        # If a tag exists, split it into major, minor, and patch version
+        if ($LastTag) {
+            $LastTag = $LastTag.TrimStart("v")
+            $LastMajor, $LastMinor, $LastPatch = $LastTag.Split(".")
+
+            $Major = $env:major
+            $Minor = $env:minor
+
+            # Increment the patch version based on the last tag
+            if ($Major -eq $LastMajor -and $Minor -eq $LastMinor) {
+                $Patch = [int]$LastPatch + 1
+            } else {
+                # Reset patch if major or minor has changed
+                $Patch = 0
+            }
+
+            # Construct the build version
+            $BuildNo = "$Major.$Minor.$Patch"
         } else {
-          $BuildNo = "0.0.0"
+            # Fallback if no tags exist
+            Write-Host "Last Tag Missing"
+            $BuildNo = "0.0.0"
         }
 
+        # Append branch name and date for non-main branches
         if ($Branch -ne 'refs/heads/main') {
-          $BuildNo = $BuildNo + "-$BranchName-$Date"
+            $BuildNo = "$BuildNo-$BranchName-$Date"
         }
-
+        
         Write-Host "BuildNo: v$BuildNo"
         echo "BuildNo=$BuildNo" | Out-File -FilePath ${{ github.env }} -Encoding utf-8 -Append
-
     - name: Restore dependencies
       run: dotnet restore
 
@@ -67,10 +79,14 @@ jobs:
       run: dotnet test --no-build --verbosity normal
 
     - name: Pack Injectable
-      run: dotnet pack Injectable/Injectable.csproj --configuration Release --output ./packages /p:PackageVersion=$BuildNo --verbosity minimal
+      run: |    
+        echo "Package version: $BuildNo"
+        dotnet pack Injectable/Injectable.csproj --configuration Release --output ./packages -p:PackageVersion=$BuildNo --verbosity minimal
 
     - name: Pack Injectable.Abstractions
-      run: dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./packages /p:PackageVersion=$BuildNo --verbosity minimal
+      run:  |    
+        echo "Package version: $BuildNo"
+        dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./packages -p:PackageVersion=$BuildNo --verbosity minimal
 
     - uses: actions/upload-artifact@v4
       with:
@@ -79,17 +95,15 @@ jobs:
 
     - name: Tag commit
       shell: pwsh
-      if: ${{ github.ref == 'refs/heads/main' }}
       run: |
         git config user.name "GitHub Actions Bot"
         git config user.email "<>"
-        git tag -a "v$env:BuildNo" -m "Increment Build No"
-        git push origin "v$env:BuildNo"
+        git tag -a "v$env:BUILD_NO" -m "Increment Build No"
+        git push origin "v$env:BUILD_NO"
 
   deployment:
     runs-on: ubuntu-latest
     environment: Nuget
-    if: ${{ github.ref == 'refs/heads/main' }}
     needs: build
     steps:
     - name: Download Build Artifacts
