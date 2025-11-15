@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net9.0;</TargetFrameworks>
+		<TargetFramework>netstandard2.0</TargetFramework>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<PackageId>Injectable</PackageId>
 		<IsPackable>true</IsPackable>
@@ -12,8 +12,12 @@
 
 	<ItemGroup>
 		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<!-- Pack the attributes dll in the analyzers/dotnet/cs path -->
+		<None Include="$(OutputPath)\Injectable.Abstractions.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<!-- Pack the attributes dll in the lib\netstandard2.0 path -->
+		<None Include="$(OutputPath)\Injectable.Abstractions.dll" Pack="true" PackagePath="lib\netstandard2.0" Visible="true" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<None Remove="Resources\Injectables.txt" />
 	</ItemGroup>
@@ -27,10 +31,10 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Injectable.Abstractions\Injectable.Abstractions.csproj" />
+		<ProjectReference Include="..\Injectable.Abstractions\Injectable.Abstractions.csproj" PrivateAssets="All" />
 	</ItemGroup>
 </Project>
