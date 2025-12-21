@@ -28,6 +28,7 @@ public class InjectablesGenerator : IIncrementalGenerator
 
         // Combine compilation with namespace requests. The Combine() ensures namespaceRequests
         // is fully collected before the compilation is processed, maintaining order guarantee.
+        // CompilationProvider always provides a value, ensuring the generator always runs.
         var implementationsProvider = context.CompilationProvider
             .Combine(namespaceRequests)
             .Select(static (data, cancellationToken) =>
@@ -40,13 +41,11 @@ public class InjectablesGenerator : IIncrementalGenerator
                 return ComputeImplementations(compilation, allowedNamespaces, cancellationToken);
             });
 
+        // Always generate the Injectables class, even when there are no implementations.
+        // This allows users to call AddNamespace() even before any injectables are discovered.
+        // The CompilationProvider ensures this always runs on every compilation.
         context.RegisterSourceOutput(implementationsProvider, (productionContext, implementations) =>
         {
-            if (implementations.IsDefaultOrEmpty)
-            {
-                return;
-            }
-
             var source = GenerateSource(implementations);
             productionContext.AddSource("Injectables.g.cs", SourceText.From(source, Encoding.UTF8));
         });
@@ -363,34 +362,42 @@ public class InjectablesGenerator : IIncrementalGenerator
         var template = EmbeddedResourceReader.ReadAsString(typeof(InjectablesGenerator).Assembly, "Injectable.Resources.Injectables.txt");
         var implementationString = new StringBuilder();
 
-        foreach (var impl in implementations)
+        if (implementations.IsDefaultOrEmpty)
         {
-            var serviceType = ToFullyQualifiedTypeName(impl.serviceType);
-            var implementationType = ToFullyQualifiedTypeName(impl.implementationType);
-            var injectionType = impl.type;
-            var lifetime = impl.lifetime;
-            var enumName = injectionType switch
+            // Return empty enumerable when there are no implementations
+            implementationString.AppendLine("            yield break;");
+        }
+        else
+        {
+            foreach (var impl in implementations)
             {
-                1 => "Decorated",
-                2 => "Implementation",
-                3 => "DecoratedAndImplementation",
-                4 => "FirstGeneric",
-                _ => "Decorated"
-            };
-            var lifecycleName = lifetime switch
-            {
-                0 => "Singleton",
-                1 => "Scoped",
-                2 => "Transient",
-                _ => "Singleton"
-            };
+                var serviceType = ToFullyQualifiedTypeName(impl.serviceType);
+                var implementationType = ToFullyQualifiedTypeName(impl.implementationType);
+                var injectionType = impl.type;
+                var lifetime = impl.lifetime;
+                var enumName = injectionType switch
+                {
+                    1 => "Decorated",
+                    2 => "Implementation",
+                    3 => "DecoratedAndImplementation",
+                    4 => "FirstGeneric",
+                    _ => "Decorated"
+                };
+                var lifecycleName = lifetime switch
+                {
+                    0 => "Singleton",
+                    1 => "Scoped",
+                    2 => "Transient",
+                    _ => "Singleton"
+                };
 
-            implementationString.AppendLine($"            yield return new InjectableType");
-            implementationString.AppendLine($"            {{");
-            implementationString.AppendLine($"                Service = typeof({serviceType}),");
-            implementationString.AppendLine($"                Implementation = typeof({implementationType}),");
-            implementationString.AppendLine($"                Attribute = new InjectAttribute(InjectionType.{enumName}, ServiceLifetime.{lifecycleName})");
-            implementationString.AppendLine($"            }};");
+                implementationString.AppendLine($"            yield return new InjectableType");
+                implementationString.AppendLine($"            {{");
+                implementationString.AppendLine($"                Service = typeof({serviceType}),");
+                implementationString.AppendLine($"                Implementation = typeof({implementationType}),");
+                implementationString.AppendLine($"                Attribute = new InjectAttribute(InjectionType.{enumName}, ServiceLifetime.{lifecycleName})");
+                implementationString.AppendLine($"            }};");
+            }
         }
 
         return template.Replace("{{ Implementations }}", implementationString.ToString());

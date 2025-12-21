@@ -1,14 +1,29 @@
 # Injectable
 Injectable is a source generator for Microsoft Dependency Injection. Add the `[Inject]` attribute to an interface/class and the incremental generator will emit a list of injectable mappings at compile time. The injectable type doesn't have to live in the same assembly as the implementation and Injectable will keep traversing base types/interfaces so even if the `[Inject]` attribute is on an "Ancestor" the type will still be detected to be injected.
 
+## Getting Started
+
+1. Install the `Injectable` NuGet package
+2. Add the `[Inject]` attribute to your interfaces or classes
+3. Add `using Injectable;` to access the generated `Injectables` class
+4. Use `Injectables.GetInjectables()` to get the list of injectable types
+
+**Important:** The `Injectables` class is always generated at compile time, even if you don't have any injectable types yet. Include `using Injectable;` in files where you use `Injectables`.
+
 Injectable produces a list of injectable types which can then be used like so:
 
-```
+```csharp
+using Injectable;
+
+// ...
+
 foreach (var injectable in Injectables.GetInjectables())
 {
     services.AddSingleton(injectable.Service, injectable.Implementation);
 }
 ```
+
+**Note:** You must include `using Injectable;` at the top of your file to access the `Injectables` class, which is generated at compile time by the source generator.
 
 By default Injectable will surface every implementation discovered during compilation. If you want to just register certain types you can filter the `Injectables.GetInjectables()` results, for example, `Injectables.GetInjectables().OfServiceType<IMyInterface>()`. You can use this functionality to choose how services are registered (e.g. register some services as Singleton & others as Transient).
 
@@ -23,10 +38,16 @@ public interface IInternalService { }
 public class InternalService : IInternalService { }
 ```
 
-Injectable will skip generating these entries unless the project contains a call to `Injectables.AddNamespace("PrivateServices");`. Simply invoke the helper once (for example in your composition root) to opt-in:
+Injectable will skip generating these entries unless the project contains a call to `Injectables.AddNamespace("PrivateServices");`. The source generator detects `AddNamespace` calls at compile time, so you can call it anywhere in your code (for example in your composition root or a static constructor). Simply invoke the helper once to opt-in:
 
-```
+```csharp
+using Injectable;
+
+// Call this before using GetInjectables() to include namespaced injectables
 Injectables.AddNamespace("PrivateServices");
+
+// Now GetInjectables() will include injectables with Namespace = "PrivateServices"
+var injectables = Injectables.GetInjectables();
 ```
 
 Namespaces are opt-in per project, so a shared library can hide private registrations while still exposing them in other solutions that choose to opt-in.
@@ -152,12 +173,14 @@ For some users, they'd expect MyClass to be injected (which it is by default). F
 
 In this case the user could filter the results that come back from Injectable before registering the types, like so:
 
-```
+```csharp
+using Injectable;
+using System.Reflection;
+
+// ...
+
 var injectables = Injectables.GetInjectables()
     .Where(x => x.Implementation.GetCustomAttribute<InjectAttribute>() is null);
-
-// Requires:
-// using System.Reflection;
 ```
 
 As easy as that we've filtered out any implementations that have the Inject attribute on directly
