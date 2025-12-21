@@ -16,6 +16,11 @@
 		<None Include="$(OutputPath)\Injectable.Abstractions.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 		<!-- Pack the attributes dll in the lib\netstandard2.0 path -->
 		<None Include="$(OutputPath)\Injectable.Abstractions.dll" Pack="true" PackagePath="lib\netstandard2.0" Visible="true" />
+		<!-- Pack DI.Abstractions for analyzer load at consumer build -->
+		<None Include="$(PkgMicrosoft_Extensions_DependencyInjection_Abstractions)\lib\netstandard2.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll"
+			  Pack="true"
+			  PackagePath="analyzers/dotnet/cs"
+			  Visible="false" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -31,7 +36,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" PrivateAssets="All" GeneratePathProperty="true" />
 	</ItemGroup>
 
 	<ItemGroup>
