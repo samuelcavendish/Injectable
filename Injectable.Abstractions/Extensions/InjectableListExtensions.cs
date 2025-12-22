@@ -24,9 +24,9 @@ namespace Injectable
             return injectableTypes;
         }
 
-        public static IEnumerable<InjectableType> AddInjectableScoped(this IEnumerable<InjectableType> injectableTypes, ServiceCollection services)
+        public static IEnumerable<InjectableType> AddInjectableScopes(this IEnumerable<InjectableType> injectableTypes, ServiceCollection services)
         {
-            services.AddInjectableScoped(injectableTypes);
+            services.AddInjectableScopes(injectableTypes);
             return injectableTypes;
         }
     }

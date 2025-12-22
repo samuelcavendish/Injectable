@@ -3,8 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Injectable.Tests.Models
 {
-    [Inject(lifecycle: ServiceLifetime.Transient)]
+    [Inject(lifetime: ServiceLifetime.Transient)]
     internal class Transient
     {
     }
+
+    internal class MyTransient : Transient { }
 }

@@ -17,12 +17,13 @@ namespace Injectable.Tests
             var scoped = provider.GetService<Scoped>();
 
             singleton.ShouldNotBeNull();
+            singleton.ShouldBeOfType<MySingleton>();
             transient.ShouldBeNull();
             scoped.ShouldBeNull();
         }
 
         [Fact]
-        public void ShouldRegisterTransients()
+        public void ShouldRegisterTransient()
         {
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddInjectableTransients(Injectables.GetInjectables());
@@ -34,6 +35,7 @@ namespace Injectable.Tests
 
             singleton.ShouldBeNull();
             transient.ShouldNotBeNull();
+            transient.ShouldBeOfType<MyTransient>();
             scoped.ShouldBeNull();
         }
 
@@ -41,7 +43,7 @@ namespace Injectable.Tests
         public void ShouldRegisterScoped()
         {
             var serviceCollection = new ServiceCollection();
-            serviceCollection.AddInjectableScoped(Injectables.GetInjectables());
+            serviceCollection.AddInjectableScopes(Injectables.GetInjectables());
             var provider = serviceCollection.BuildServiceProvider();
 
             var singleton = provider.GetService<Singleton>();
@@ -51,6 +53,7 @@ namespace Injectable.Tests
             singleton.ShouldBeNull();
             transient.ShouldBeNull();
             scoped.ShouldNotBeNull();
+            scoped.ShouldBeOfType<MyScoped>();
         }
 
         [Fact]
@@ -65,8 +68,11 @@ namespace Injectable.Tests
             var scoped = provider.GetRequiredService<Scoped>();
 
             singleton.ShouldNotBeNull();
+            singleton.ShouldBeOfType<MySingleton>();
             transient.ShouldNotBeNull();
+            transient.ShouldBeOfType<MyTransient>();
             scoped.ShouldNotBeNull();
+            scoped.ShouldBeOfType<MyScoped>();
         }
     }
 }

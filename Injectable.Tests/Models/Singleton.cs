@@ -3,7 +3,6 @@
 namespace Injectable.Tests.Models
 {
     [Inject]
-    internal class Singleton
-    {
-    }
+    internal class Singleton { }
+    internal class MySingleton : Singleton { }
 }

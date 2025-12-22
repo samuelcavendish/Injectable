@@ -10,6 +10,20 @@ namespace Injectable
 {
     public static partial class Injectables
     {
+        private static readonly System.Collections.Generic.HashSet<string> RequestedNamespaces = new(System.StringComparer.Ordinal);
+
+        public static void AddNamespace(string @namespace)
+        {
+            if (string.IsNullOrWhiteSpace(@namespace))
+            {
+                return;
+            }
+
+            RequestedNamespaces.Add(@namespace);
+        }
+
+        public static System.Collections.Generic.IReadOnlyCollection<string> GetRequestedNamespaces() => RequestedNamespaces;
+
         public static IEnumerable<InjectableType> GetInjectables()
         {
 {{ Implementations }}

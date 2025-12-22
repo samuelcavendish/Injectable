@@ -13,8 +13,8 @@ public static class InjectableTypeExtensions
     public static IEnumerable<InjectableType> OfImplementationType<T>(this IEnumerable<InjectableType> injectableTypes)
         => injectableTypes.Where(x => x.Implementation == typeof(T));
 
-    public static IEnumerable<InjectableType> WithLifecycle(this IEnumerable<InjectableType> injectableTypes, ServiceLifetime lifecycle)
-        => injectableTypes.Where(x => x.Lifecycle == lifecycle);
+    public static IEnumerable<InjectableType> WithLifecycle(this IEnumerable<InjectableType> injectableTypes, ServiceLifetime lifetime)
+        => injectableTypes.Where(x => x.Lifetime == lifetime);
 
     public static IEnumerable<InjectableType> WithSingletonLifecycle(this IEnumerable<InjectableType> injectableTypes)
         => injectableTypes.WithLifecycle(ServiceLifetime.Singleton);

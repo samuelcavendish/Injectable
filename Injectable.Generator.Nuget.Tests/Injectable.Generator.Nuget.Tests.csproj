@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- Keep NuGet restore isolated and using the local artifacts feed by default -->
+		<RestorePackagesPath>$(MSBuildThisFileDirectory)..\packages</RestorePackagesPath>
+		<RestoreConfigFile>$(MSBuildThisFileDirectory)..\nuget.integration-tests.config</RestoreConfigFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Injectable" Version="[0.0.0-local]" />
+		<PackageReference Include="Injectable.Abstractions" Version="[0.0.0-local]" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+		<PackageReference Include="Shouldly" Version="4.3.0" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<Compile Include="..\Injectable.Tests\**\*.cs"
+		         Exclude="..\Injectable.Tests\**\obj\**;..\Injectable.Tests\**\bin\**;..\Injectable.Tests\**\*.AssemblyAttributes.cs;..\Injectable.Tests\**\Properties\AssemblyInfo.cs"
+		         Link="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" Version="6.0.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+		<PackageReference Include="xunit" Version="2.5.3" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Xunit" />
+		<Using Include="Shouldly" />
+		<Using Include="System.Linq" />
+		<Using Include="System.Reflection" />
+	</ItemGroup>
+
+	<!-- Ensure required local packages are present in ../artifacts before restore/build -->
+	<Target Name="EnsureLocalArtifacts" BeforeTargets="Restore;Build">
+		<PropertyGroup>
+			<ArtifactsDir>$(MSBuildThisFileDirectory)../artifacts</ArtifactsDir>
+			<LocalPackageVersion>0.0.0-local</LocalPackageVersion>
+		</PropertyGroup>
+
+		<ItemGroup>
+			<RequiredPackage Include="Injectable.$(LocalPackageVersion).nupkg" />
+			<RequiredPackage Include="Injectable.Abstractions.$(LocalPackageVersion).nupkg" />
+		</ItemGroup>
+
+		<Message Text="Packing Injectable projects into $(ArtifactsDir) because one or more packages are missing." Importance="High"
+		         Condition="%(RequiredPackage.Identity) != '' and !Exists('$(ArtifactsDir)\%(RequiredPackage.Identity)')" />
+
+		<Exec Command="dotnet pack $(MSBuildThisFileDirectory)..\Injectable\Injectable.csproj -c Release -o $(ArtifactsDir) /p:Version=$(LocalPackageVersion)"
+		      Condition="!Exists('$(ArtifactsDir)\Injectable.$(LocalPackageVersion).nupkg')" />
+
+		<Exec Command="dotnet pack $(MSBuildThisFileDirectory)..\Injectable.Abstractions\Injectable.Abstractions.csproj -c Release -o $(ArtifactsDir) /p:Version=$(LocalPackageVersion)"
+		      Condition="!Exists('$(ArtifactsDir)\Injectable.Abstractions.$(LocalPackageVersion).nupkg')" />
+	</Target>
+
+</Project>

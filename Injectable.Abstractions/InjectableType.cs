@@ -9,5 +9,5 @@ public class InjectableType
     public Type Implementation { get; set; } = null!;
     public Type Service { get; set; } = null!;
 
-    public ServiceLifetime Lifecycle => Attribute.Lifecycle;
+    public ServiceLifetime Lifetime => Attribute.Lifetime;
 }
