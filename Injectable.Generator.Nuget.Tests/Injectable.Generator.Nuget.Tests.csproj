@@ -16,8 +16,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Injectable" Version="0.0.0-local" />
-		<PackageReference Include="Injectable.Abstractions" Version="0.0.0-local" />
+		<PackageReference Include="Injectable" Version="[0.0.0-local]" />
+		<PackageReference Include="Injectable.Abstractions" Version="[0.0.0-local]" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
 		<PackageReference Include="Shouldly" Version="4.3.0" />
 	</ItemGroup>
