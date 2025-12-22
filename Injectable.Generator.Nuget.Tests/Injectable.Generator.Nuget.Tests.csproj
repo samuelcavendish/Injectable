@@ -41,7 +41,7 @@
 	</ItemGroup>
 
 	<!-- Ensure required local packages are present in ../artifacts before restore/build -->
-	<Target Name="EnsureLocalArtifacts" BeforeTargets="Restore">
+	<Target Name="EnsureLocalArtifacts" BeforeTargets="Restore;Build">
 		<PropertyGroup>
 			<ArtifactsDir>$(MSBuildThisFileDirectory)../artifacts</ArtifactsDir>
 			<LocalPackageVersion>0.0.0-local</LocalPackageVersion>
