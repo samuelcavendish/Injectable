@@ -122,4 +122,8 @@ jobs:
         name: packages
 
     - name: Publish to NuGet
-      run: dotnet nuget push **/Injectable*.nupkg --source "https://api.nuget.org/v3/index.json" --api-key ${{ secrets.NUGET_PAT }}
+      run: |
+        dotnet nuget push packages/**/Injectable*.nupkg \
+          --source "https://api.nuget.org/v3/index.json" \
+          --api-key ${{ secrets.NUGET_PAT }} \
+          --skip-duplicate
