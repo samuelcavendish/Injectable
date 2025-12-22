@@ -13,6 +13,9 @@
 		<RestoreConfigFile>$(MSBuildThisFileDirectory)..\nuget.integration-tests.config</RestoreConfigFile>
 		<!-- Force restore sources to prefer local artifacts, then nuget.org -->
 		<RestoreSources>$(MSBuildThisFileDirectory)..\artifacts;https://api.nuget.org/v3/index.json</RestoreSources>
+
+		<!-- Avoid failing restore on downgrade warnings when local 0.0.0-local is used -->
+		<NoWarn>$(NoWarn);NU1603;NU1605</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
