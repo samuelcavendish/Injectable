@@ -299,7 +299,7 @@ public class InjectablesGenerator : IIncrementalGenerator
         // Check named arguments first
         foreach (var namedArg in attribute.NamedArguments)
         {
-            if (namedArg.Key == "lifetime" && namedArg.Value.Kind == TypedConstantKind.Enum)
+            if (namedArg.Key == "Lifetime" && namedArg.Value.Kind == TypedConstantKind.Enum)
             {
                 return (int)namedArg.Value.Value!;
             }
