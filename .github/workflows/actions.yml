@@ -80,7 +80,7 @@ jobs:
       env:
         NUGET_PACKAGES: ${{ github.workspace }}/packages
       run: |
-        dotnet restore --configfile nuget.integration-tests.config --packages $NUGET_PACKAGES --verbosity detailed
+        dotnet restore --configfile nuget.integration-tests.config --packages $NUGET_PACKAGES
 
     - name: Build
       run: dotnet build --no-restore
