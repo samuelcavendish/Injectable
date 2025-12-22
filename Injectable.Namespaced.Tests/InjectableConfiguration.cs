@@ -1,4 +1,4 @@
-namespace Injectable.Tests.Namespaced;
+namespace Injectable.Namespaced.Tests;
 
 // This file contains a call to AddNamespace that the source generator will detect
 // during compilation. This allows namespaced injectables to be included in the generated code.

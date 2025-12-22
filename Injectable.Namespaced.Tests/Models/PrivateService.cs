@@ -1,6 +1,6 @@
 using Injectable.Abstractions;
 
-namespace Injectable.Tests.Namespaced.Models;
+namespace Injectable.Namespaced.Tests.Models;
 
 [Inject(Namespace = "PrivateServices")]
 public interface IPrivateService

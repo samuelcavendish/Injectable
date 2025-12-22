@@ -1,6 +1,6 @@
-using Injectable.Tests.Namespaced.Models;
+using Injectable.Namespaced.Tests.Models;
 
-namespace Injectable.Tests.Namespaced;
+namespace Injectable.Namespaced.Tests;
 
 public class NamespacedTests
 {
