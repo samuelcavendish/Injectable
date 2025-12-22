@@ -79,7 +79,8 @@ jobs:
     - name: Restore dependencies (prefer local artifacts)
       env:
         NUGET_PACKAGES: ${{ github.workspace }}/packages
-      run: dotnet restore --configfile nuget.integration-tests.config --packages $NUGET_PACKAGES
+        NUGET_DISABLE_PACKAGE_SOURCE_MAPPING: true
+      run: dotnet restore --source ${{ github.workspace }}/artifacts --source https://api.nuget.org/v3/index.json --packages $NUGET_PACKAGES
 
     - name: Build
       run: dotnet build --no-restore
