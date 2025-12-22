@@ -12,7 +12,7 @@
 		<RestorePackagesPath>$(MSBuildThisFileDirectory)..\packages</RestorePackagesPath>
 		<RestoreConfigFile>$(MSBuildThisFileDirectory)..\nuget.integration-tests.config</RestoreConfigFile>
 		<!-- Force restore sources to prefer local artifacts, then nuget.org -->
-		<RestoreSources>$(MSBuildThisFileDirectory)..\artifacts;https://api.nuget.org/v3/index.json</RestoreSources>
+		<RestoreSources>$(SolutionDir)artifacts;https://api.nuget.org/v3/index.json</RestoreSources>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -45,7 +45,7 @@
 	<!-- Ensure required local packages are present in ../artifacts before restore/build -->
 	<Target Name="EnsureLocalArtifacts" BeforeTargets="Restore">
 		<PropertyGroup>
-			<ArtifactsDir>$(MSBuildThisFileDirectory)..\artifacts</ArtifactsDir>
+			<ArtifactsDir>$(SolutionDir)artifacts</ArtifactsDir>
 			<LocalPackageVersion>0.0.0-local</LocalPackageVersion>
 		</PropertyGroup>
 
