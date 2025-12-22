@@ -75,8 +75,10 @@ jobs:
         dotnet pack Injectable/Injectable.csproj --configuration Release --output ./artifacts /p:Version=0.0.0-local --verbosity minimal
         dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./artifacts /p:Version=0.0.0-local --verbosity minimal
 
-    - name: Restore dependencies
-      run: dotnet restore
+    - name: Restore dependencies (prefer local artifacts)
+      env:
+        NUGET_PACKAGES: ${{ github.workspace }}/packages
+      run: dotnet restore --source ./artifacts --source https://api.nuget.org/v3/index.json
 
     - name: Build
       run: dotnet build --no-restore
