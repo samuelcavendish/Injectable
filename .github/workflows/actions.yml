@@ -104,10 +104,13 @@ jobs:
         path: ./packages/**/*.nupkg
 
     - name: Tag commit
+      if: github.ref == 'refs/heads/main'
       shell: pwsh
+      env:
+        BUILD_NO: ${{ env.BuildNo }}
       run: |
         git config user.name "GitHub Actions Bot"
-        git config user.email "<>"
+        git config user.email "actions@github.com"
         git tag -a "v$env:BUILD_NO" -m "Increment Build No"
         git push origin "v$env:BUILD_NO"
 
