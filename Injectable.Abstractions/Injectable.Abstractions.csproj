@@ -4,6 +4,8 @@
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageProjectUrl>https://github.com/samuelcavendish/Injectable/Injectable</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/samuelcavendish/Injectable/Injectable.git</RepositoryUrl>
 	</PropertyGroup>
 
 	<ItemGroup>
