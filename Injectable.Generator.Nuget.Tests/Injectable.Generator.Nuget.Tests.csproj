@@ -11,8 +11,6 @@
 		<!-- Keep NuGet restore isolated and using the local artifacts feed by default -->
 		<RestorePackagesPath>$(MSBuildThisFileDirectory)..\packages</RestorePackagesPath>
 		<RestoreConfigFile>$(MSBuildThisFileDirectory)..\nuget.integration-tests.config</RestoreConfigFile>
-		<!-- Force restore sources to prefer local artifacts, then nuget.org -->
-		<RestoreSources>$(SolutionDir)artifacts;https://api.nuget.org/v3/index.json</RestoreSources>
 	</PropertyGroup>
 
 	<ItemGroup>

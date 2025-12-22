@@ -79,8 +79,7 @@ jobs:
     - name: Restore dependencies (prefer local artifacts)
       env:
         NUGET_PACKAGES: ${{ github.workspace }}/packages
-        LOCAL_ARTIFACTS: ${{ github.workspace }}/artifacts
-      run: dotnet restore --source $LOCAL_ARTIFACTS --configfile nuget.integration-tests.config --packages $NUGET_PACKAGES
+      run: dotnet restore --configfile nuget.integration-tests.config --packages $NUGET_PACKAGES
 
     - name: Build
       run: dotnet build --no-restore
