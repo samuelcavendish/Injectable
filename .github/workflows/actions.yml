@@ -72,8 +72,8 @@ jobs:
         
     - name: Pack local test artifacts (0.0.0-local) for NuGet integration tests
       run: |
-        dotnet pack Injectable/Injectable.csproj --configuration Release --output ./artifacts /p:Version=0.0.0-local --verbosity minimal
-        dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output ./artifacts /p:Version=0.0.0-local --verbosity minimal
+        dotnet pack Injectable/Injectable.csproj --configuration Release --output artifacts /p:Version=0.0.0-local --verbosity minimal
+        dotnet pack Injectable.Abstractions/Injectable.Abstractions.csproj --configuration Release --output artifacts /p:Version=0.0.0-local --verbosity minimal
 
     - name: Restore dependencies (prefer local artifacts)
       env:
